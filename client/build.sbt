@@ -11,5 +11,6 @@ libraryDependencies ++= Seq(
   "com.github.finagle" %% "finch-core" % "0.9.3",
   "com.github.finagle" %% "finch-json4s" % "0.9.3",
   "com.typesafe.akka" %% "akka-remote" % "2.4.1",
-  "com.typesafe.akka" %% "akka-actor" % "2.4.1"
+  "com.typesafe.akka" %% "akka-actor" % "2.4.1",
+  "ch.qos.logback" % "logback-classic" % "1.1.3"
 )
