@@ -1,0 +1,11 @@
+.portfolio-selector.ui.card {
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin: 10px 10px 0 0; }
+
+.portfolio.ui.segment {
+  width: 600px;
+  margin: 10px 0 0 10px; }
+
+/*# sourceMappingURL=app.css.map */
