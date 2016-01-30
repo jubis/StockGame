@@ -40,8 +40,10 @@ class PortfolioService {
   }
 
   def getPortfolio(portfolioName: String): Future[PortfolioSnapshot] = {
+    logger.info(s"Getting portfolio $portfolioName")
+
     (getPortfolioActor(portfolioName) ? ValueRequest())
       .map { case snapshot: PortfolioSnapshot => snapshot }
-      .recover { case _ => PortfolioSnapshot("Test portfolio", 0, 0, List()) }
+      .recover { case _ => PortfolioSnapshot("Test portfolio", 0, 0, List(AssetSnapshot(Asset("A", 1.1, 10), 1.0))) }
   }
 }
