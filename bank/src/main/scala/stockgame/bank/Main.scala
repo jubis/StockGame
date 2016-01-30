@@ -1,8 +1,10 @@
 package stockgame.bank
 
+import java.util.Date
 import java.util.concurrent.TimeUnit
 
 import akka.actor._
+import akka.event.LoggingReceive
 import akka.pattern.ask
 import akka.util.Timeout
 import fi.hackathon.api._
@@ -13,19 +15,20 @@ object Main extends App {
 
   implicit val system = ActorSystem("BankSystem")
 
-  val market = system.actorSelection("akka.tcp://MarketSystem@192.168.0.16:8888/user/market")
+
+  val market = resolve(system.actorSelection("akka.tcp://MarketSystem@192.168.0.20:5551/user/market"))
+
   val bank = system.actorOf(Props.create(classOf[BankActor], market), name = "bank")
 
-  bank ! CreatePortfolio("klasu", 1000.00)
+  def resolve(selection: ActorSelection): ActorRef = {
+    val resolveTimeout = Timeout(5, TimeUnit.SECONDS)
+    val awaitTimeout = Timeout(5, TimeUnit.SECONDS)
 
-  val portfolio = system.actorOf(Props.create(classOf[PortfolioActor], market, "klasu", BigDecimal(1000.00)), name = "klasu")
-
-  portfolio ! BuyOrder("MSFT", 15)
-
-  portfolio ! ValueRequest()
+    Await.result(selection.resolveOne()(resolveTimeout), awaitTimeout.duration)
+  }
 }
 
-class PortfolioActor(market: ActorSelection, name: String, initialValue: BigDecimal) extends Actor {
+class PortfolioActor(market: ActorRef, name: String, initialValue: BigDecimal) extends Actor {
 
   def waitForCommand(portfolio: Portfolio): Receive = {
     case msg: BuyOrder => {
@@ -37,8 +40,6 @@ class PortfolioActor(market: ActorSelection, name: String, initialValue: BigDeci
         case Some(price) => buy(portfolio, price, msg.number)
         case None => portfolio
       }
-
-      println(portfolioAfter)
 
       sender ! portfolioAfter
       context.become(waitForCommand(portfolioAfter))
@@ -61,35 +62,39 @@ class PortfolioActor(market: ActorSelection, name: String, initialValue: BigDeci
       val future = market ? portfolio
       val currentValue: PortfolioSnapshot = Await.result(future, timeout.duration).asInstanceOf[PortfolioSnapshot]
 
-
-      println(currentValue)
       sender ! currentValue
       context.become(waitForCommand(portfolio))
     }
   }
 
   private def buy(portfolio: Portfolio, price: CurrentPrice, count: Int) = {
-    val sum = price.ask * count
-    portfolio.copy(cash = portfolio.cash - sum, assets = portfolio.assets :+ Asset(price.symbol, price.ask, count))
+    val sum = price.ask * BigDecimal(count)
+
+    if(sum <= portfolio.cash)
+      portfolio.copy(cash = portfolio.cash - sum, assets = portfolio.assets :+ Asset(price.symbol, price.ask, count, System.currentTimeMillis))
+    else
+      portfolio
   }
 
-  private def sell(portfolio: Portfolio, price: CurrentPrice) = {
-    val asset = portfolio.assets.find(asset => asset.symbol == price.symbol)
+  private def sell(portfolio: Portfolio, price: CurrentPrice): Portfolio = {
+    val assets = portfolio.assets.filter(asset => asset.symbol == price.symbol)
 
-    asset
-      .map(as => portfolio.copy(cash = portfolio.cash + (as.count * price.bid), assets = portfolio.assets.filterNot(_.symbol == price.symbol)))
-      .getOrElse(portfolio)
+    val assetValue = assets.foldLeft(0) {(sum: Int, asset: Asset) => sum + asset.count} * price.bid
+
+    portfolio.copy(cash = portfolio.cash + assetValue, assets = portfolio.assets.filterNot(_.symbol == price.symbol))
   }
 
   override def receive = waitForCommand(Portfolio(name, initialValue, List()))
 }
 
 
-class BankActor(market: ActorSelection) extends Actor {
+class BankActor(market: ActorRef) extends Actor {
 
-  def managePortfolios(portfolios: List[ActorRef]): Receive = {
-    case msg: CreatePortfolio => context.actorOf(Props.create(classOf[PortfolioActor], market, msg.name, msg.value), name = msg.name)
+  override def receive = LoggingReceive {
+    case msg: CreatePortfolio => {
+      println("Create request")
+      context.actorOf(Props.create(classOf[PortfolioActor], market, msg.name, msg.value), name = msg.name)
+    }
+    case _ => println("Something else")
   }
-
-  override def receive: Receive = managePortfolios(List())
 }
