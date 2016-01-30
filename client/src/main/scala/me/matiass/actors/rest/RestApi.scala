@@ -3,6 +3,7 @@ package me.matiass.actors
 import com.twitter.server.TwitterServer
 import com.twitter.util.Await
 import io.finch.Output
+import me.matiass.actors.rest.SellRest
 import org.json4s.ext.JodaTimeSerializers
 import com.twitter.finagle.Http
 import io.finch.json4s._
@@ -15,8 +16,9 @@ class RestApi extends TwitterServer {
   import Services._
   val portfolio = new PortfolioRest
   val buy = new BuyRest(portfolio)
+  val sell = new SellRest(portfolio)
 
-  val coEndpoint = (portfolio.endpoint :+: buy.endpoint)
+  val coEndpoint = (portfolio.endpoint :+: buy.endpoint :+: sell.endpoint)
     .withHeader("Access-Control-Allow-Origin" -> "*")
 
   val server = Http.server

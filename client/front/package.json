@@ -6,7 +6,9 @@
   "author": "",
   "license": "ISC",
   "scripts": {
-    "start": "babel-node server.js"
+    "start": "babel-node server.js",
+    "build": "babel *.js -d dist",
+    "serve": "forever start dist/server.js"
   },
   "dependencies": {
     "babel-plugin-transform-react-jsx": "^6.0.2",

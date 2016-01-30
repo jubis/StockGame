@@ -1,5 +1,5 @@
 
-const {createAction, getPortfolio, doSellAll} = require('./data.js')
+const {createAction, getPortfolio, doSellAll, doBuy} = require('./data.js')
 
 const Icon = React.createClass({
 	render: function() {
@@ -25,16 +25,25 @@ const model = function() {
 		currentPortfolio: selectPortfolio.$
 	}).toEventStream().log('portfolio selector')
 
+	const buy = createAction()
+	const bought$ = doBuy(Bacon.when(
+		[buy.$, selectPortfolio.$.toProperty()], ({symbol, amount}, portfolioName) => ({symbol, amount, portfolioName})
+	))
+
 	const sellAll = createAction()
-	const sold$ = doSellAll(sellAll.$)
-	const loadPortfolio$ = selectPortfolio.$.merge(sold$)
+	const sold$ = doSellAll(Bacon.when(
+		[sellAll.$, selectPortfolio.$.toProperty()], (symbol, portfolioName) => ({symbol, portfolioName})
+	))
+	const loadPortfolio$ = selectPortfolio.$
+		.merge(selectPortfolio.$.sampledBy(sold$))
+		.merge(selectPortfolio.$.sampledBy(bought$))
 	const portfolio$ = Bacon.combineTemplate({
 		portfolio: getPortfolio(loadPortfolio$).log('portfolio'),
 		sellAll: sellAll.action
 	}).toEventStream()
 
 	const state$ = Bacon.update(
-		null,
+		{buyer: {buy: buy.action}},
 		[portfolioSelector$], addAndIncludePrevious('portfolioSelector'),
 		[portfolio$], addAndIncludePrevious('portfolio')
 	).log('state')
@@ -49,7 +58,10 @@ $('document').ready(() => {
 		.filter(state => state != null)
 		.map(state =>
 			<div>
-				{(state.portfolio) ? Portfolio(state.portfolio) : null}
+				{(state.portfolio) ?
+					(<div className="portfolio-container">{Portfolio(state.portfolio)}{Buyer(state.buyer)}</div>) :
+					null
+				}
 				{PortfolioSelector(state.portfolioSelector)}
 			</div>
 		)
@@ -86,12 +98,17 @@ function Portfolio({portfolio: model, sellAll}) {
 		return (<div className="portfolio ui segment">Loading...</div>)
 	}
 
+	function profitClass(profit) {
+		return (profit >= 0) ? 'profit-blue' : 'profit-red'
+	}
+
 	return (<div className="portfolio ui segments">
 		<div className="ui segment">
 			<h2>{model.name}</h2>
 			<p>Market value: ${model.marketValue}</p>
 			<p>Cash: ${model.cash}</p>
 			<p><strong>Total Value: ${model.totalValue}</strong></p>
+			<p><strong>Profit: ${model.profit} = {model.profitPercentage}%</strong></p>
 		</div>
 		<div className="ui segment">
 			<table className="ui definition table">
@@ -108,22 +125,70 @@ function Portfolio({portfolio: model, sellAll}) {
 				</thead>
 				<tbody>
 				{
-					model.assets.map(({asset, symbolValue, totalValue, symbolProfit}) => (<tr key={asset.symbol}>
-						<td>{asset.symbol}</td>
-						<td>{asset.count}</td>
-						<td>{asset.buyPrice}</td>
-						<td>{symbolValue}</td>
-						<td>{totalValue}</td>
-						<td>{symbolProfit}</td>
-						<td>
-							<button onClick={() => sellAll(asset.symbol)} className="sell-all ui red small button">
-								Sell all
-							</button>
-						</td>
-					</tr>))
+					model.stocks.map(({symbol, count, buyPrice, symbolValue, marketValue, profit, profitPercentage}) => {
+
+
+						return (<tr key={symbol}>
+							<td>{symbol}</td>
+							<td>{count}</td>
+							<td>${buyPrice}</td>
+							<td>${symbolValue}</td>
+							<td>${marketValue}</td>
+							<td className={profitClass(profit)}>
+								<span>${profit}</span> = <span>{profitPercentage}%</span>
+							</td>
+							<td>
+								<button onClick={() => sellAll(symbol)} className="sell-all ui red small button">
+									Sell all
+								</button>
+							</td>
+						</tr>)
+					})
 				}
 				</tbody>
+				<tfoot className="full-width">
+					<tr>
+						<th></th>
+						<th></th>
+						<th></th>
+						<th></th>
+						<th>${model.marketValue}</th>
+						<th className={profitClass(model.profit)}>
+							<span>${model.profit}</span> = <span>{model.profitPercentage}%</span>
+						</th>
+						<th></th>
+					</tr>
+				</tfoot>
 			</table>
+		</div>
+	</div>)
+}
+
+function Buyer({buy}) {
+	function sendBuy(event) {
+		event.preventDefault()
+		buy({
+			symbol: $('.buyer input.symbol').val(),
+			amount: $('.buyer input.amount').val()
+		})
+	}
+
+	return (<div className="buyer ui segment">
+		<div className="content">
+			<p className="header">Buyer</p>
+			<div className="description">
+				<form className="ui form">
+					<div className="field">
+						<label>Symbol</label>
+						<input type="text" className="symbol"></input>
+					</div>
+					<div className="field">
+						<label>Amount</label>
+						<input type="text" className="amount"></input>
+					</div>
+					<button className="ui button green" onClick={sendBuy}>Buy</button>
+				</form>
+			</div>
 		</div>
 	</div>)
 }

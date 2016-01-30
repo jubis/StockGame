@@ -15,8 +15,9 @@ class BuyRest(portfolio: PortfolioRest)(implicit val portfolioService: Portfolio
   val buyOrderReader = (param("symbol") :: param("amount").as[Int]).as[BuyOrder]
   val create: Endpoint[String] = post(list ? buyOrderReader) { (portfolioName: String, buyOrder: BuyOrder) =>
     portfolioService.doBuy(portfolioName, buyOrder)
-      .map { case Portfolio(name, cash, _) =>
-        s"Buy completed in $name. Cash left $$$cash"
+      .map {
+        case true => "successful"
+        case false => "failure"
       }
       .map(Ok(_))
       .toTwitter

@@ -19,19 +19,31 @@ class PortfolioService {
 
   private def getPortfolioActor(name: String) = system.actorSelection(bankSystemBase + "bank/" + name)
 
-  def doBuy(subjectName: String, order: BuyOrder): Future[Portfolio] = {
+  def doBuy(subjectName: String, order: BuyOrder): Future[Boolean] = {
     logger.info(s"Buy order to portfolio $subjectName. Buy ${order.number} x ${order.symbol}.")
 
-    val buy = getPortfolioActor(subjectName) ? order
-    buy
-      .map { case portfolio: Portfolio => portfolio }
-      .andThen {
-        case Success(Portfolio(name, _, _)) => auditor ! BuyEvent(name)
-        case Failure(_) => auditor ! new RuntimeException(s"Buy failed in portfolio $subjectName")
-      }
+    doAction(subjectName, order, "Buy")
   }
-  def doBuy(subjectName: String, symbol: String, amount: Int): Future[Portfolio] = {
+  def doBuy(subjectName: String, symbol: String, amount: Int): Future[Boolean] = {
     doBuy(subjectName, BuyOrder(symbol, amount))
+  }
+
+  def doSell(subjectName: String, order: SellOrder): Future[Boolean] = {
+    logger.info(s"Sell order to portfolio $subjectName. Sell all ${order.symbol}.")
+
+    doAction(subjectName, order, "Sell")
+  }
+
+  def doAction(subjectName: String, msg: Any, actionType: String): Future[Boolean] = {
+
+    val action = getPortfolioActor(subjectName) ? msg
+    action
+      .andThen {
+        case Success(_) => auditor ! BuyEvent(subjectName)
+        case Failure(_) => auditor ! new RuntimeException(s"$actionType failed in portfolio $subjectName")
+      }
+      .map(_ => true)
+      .recover { case _ => false }
   }
 
   def createPortfolio(portfolioName: String) = {
@@ -39,11 +51,15 @@ class PortfolioService {
     doBuy(portfolioName, "MSFT", 1)
   }
 
-  def getPortfolio(portfolioName: String): Future[PortfolioSnapshot] = {
+  def getPortfolio(portfolioName: String): Future[PortfolioAnalysis] = {
     logger.info(s"Getting portfolio $portfolioName")
 
     (getPortfolioActor(portfolioName) ? ValueRequest())
-      .map { case snapshot: PortfolioSnapshot => snapshot }
-      .recover { case _ => PortfolioSnapshot("Test portfolio", 0, 0, List(AssetSnapshot(Asset("A", 1.1, 10), 1.0))) }
+      .map { case snapshot: PortfolioAnalysis => snapshot }
+      .recover { case _ => PortfolioAnalysis(
+                              "Test portfolio", 0, 100, 11, 1, 10,
+                              List(AssetAnalysis(AssetSnapshot("A", 1.1, 10, 0L), 10, 1, 10))
+                          )
+      }
   }
 }
