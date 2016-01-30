@@ -4,8 +4,11 @@
   right: 0;
   margin: 10px 10px 0 0; }
 
-.portfolio.ui.segment {
+.portfolio.ui.segments, .portfolio.ui.segment {
   width: 600px;
   margin: 10px 0 0 10px; }
+  .portfolio.ui.segments .sell-all.ui.button, .portfolio.ui.segment .sell-all.ui.button {
+    width: 60px;
+    padding: 8px 0; }
 
 /*# sourceMappingURL=app.css.map */

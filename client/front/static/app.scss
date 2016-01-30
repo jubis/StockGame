@@ -5,7 +5,12 @@
   margin: 10px 10px 0 0;
 }
 
-.portfolio.ui.segment  {
+.portfolio.ui.segments, .portfolio.ui.segment {
   width: 600px;
   margin: 10px 0 0 10px;
+
+  .sell-all.ui.button {
+    width: 60px;
+    padding: 8px 0;
+  }
 }
