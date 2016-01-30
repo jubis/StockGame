@@ -15,7 +15,9 @@ class PortfolioAnalyzer(market: ActorRef) extends Actor {
 
     case portfolio: Portfolio => {
 
-      val assetSnapshots = portfolio.assets
+      println(portfolio.transactions)
+
+      val assetSnapshots = portfolio.transactions.filterNot(_.isSold)
         .map(fetchPrice)
 
       Future.sequence(assetSnapshots)
@@ -35,7 +37,7 @@ class PortfolioAnalyzer(market: ActorRef) extends Actor {
     val profitPercentage = (if (buyValue != BigDecimal(0.00)) (profit / buyValue) * 100 else BigDecimal(0.00)).setScale(2, RoundingMode.CEILING)
 
     PortfolioAnalysis(portfolio.name, portfolio.cash, portfolio.cash + marketValue, marketValue,
-                    profit, profitPercentage, portfolio.assets, assetAnalyses)
+                    profit, profitPercentage, assetAnalyses)
   }
 
   private def toAssetAnalysis(asset: AssetSnapshot) = {
@@ -61,7 +63,7 @@ class PortfolioAnalyzer(market: ActorRef) extends Actor {
     AssetSnapshot(assets.head.symbol, avgPrice, count, assets.head.symbolValue)
   }
 
-  private def fetchPrice(asset: Asset): Future[AssetSnapshot] = {
+  private def fetchPrice(asset: AssetTransaction): Future[AssetSnapshot] = {
 
     market.ask(GetCurrentPrice(asset.symbol))(5 seconds)
       .map(price => AssetSnapshot(asset.symbol, asset.buyPrice, asset.count, price.asInstanceOf[CurrentPrice].bid))

@@ -77,17 +77,21 @@ class PortfolioActor(market: ActorRef, analyzer: ActorRef, name: String, initial
     val sum = price.ask * BigDecimal(count)
 
     if (sum <= portfolio.cash)
-      Success(portfolio.copy(cash = portfolio.cash - sum, assets = portfolio.assets :+ Asset(price.symbol, price.ask, count, System.currentTimeMillis)))
+      Success(portfolio.copy(cash = portfolio.cash - sum,
+        transactions = portfolio.transactions :+ AssetTransaction.buy(price.symbol, price, count)))
     else
       Failure(new Exception("Insufficient cash"))
   }
 
   private def sell(portfolio: Portfolio, price: CurrentPrice): Portfolio = {
-    val assets = portfolio.assets.filter(asset => asset.symbol == price.symbol)
+    val assets = portfolio.transactions.filterNot(_.isSold).filter(transactions => transactions.symbol == price.symbol)
 
     val assetValue = assets.map(_.count).sum * price.bid
 
-    portfolio.copy(cash = portfolio.cash + assetValue, assets = portfolio.assets.filterNot(_.symbol == price.symbol))
+    portfolio.copy(cash = portfolio.cash + assetValue, transactions = portfolio.transactions.map { transaction =>
+      if(assets.contains(transaction)) transaction.sell(price)
+      else transaction
+    })
   }
 
   override def receive = waitForCommand(Portfolio(name, initialValue, List()))
