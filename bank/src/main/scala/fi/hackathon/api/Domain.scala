@@ -2,7 +2,6 @@ package fi.hackathon.api
 
 import akka.actor.ActorRef
 
-case class Data(data: String)
 
 case class BuyOrder(symbol: String, number: Int)
 case class SellOrder(symbol: String, number: Int)
@@ -15,7 +14,7 @@ case class PortfolioStatusRequest()
 case class ValueRequest()
 
 
-case class Asset(symbol: String, buyPrice: BigDecimal, count: Int)
+case class Asset(symbol: String, buyPrice: BigDecimal, count: Int, timestamp: Long)
 
 case class Portfolio(name: String, cash: BigDecimal, assets: List[Asset])
 
