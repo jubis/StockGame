@@ -38,15 +38,11 @@ module.exports = {
 		return toApiCall(
 				portfolioSearch$.map(name => `/portfolio/${name}`)
 			)
-			.map(({name, cash, analysis}) => {
-				const {profit, profitPercentage, totalValue: marketValue} = analysis
-
-				const stocks = analysis.assets.map(({asset, marketValue, profit, profitPercentage}) => {
-					const symbolValue = asset.symbolValue
-					const {symbol, count, buyPrice} = asset.asset
-					return {symbol, count, symbolValue, buyPrice, marketValue, profit, profitPercentage}
+			.map(({name, cash, marketValue, totalValue, profit, profitPercentage, assets}) => {
+				const stocks = assets.map(({asset, marketValue, profit, profitPercentage}) => {
+					return {...asset, marketValue, profit, profitPercentage}
 				})
-				return {name, cash, marketValue, profit, profitPercentage, stocks}
+				return {name, cash, marketValue, totalValue, profit, profitPercentage, stocks}
 			}).log('portfolio')
 			.merge(
 				portfolioSearch$.map(() => ({loading: true}))
@@ -61,5 +57,13 @@ module.exports = {
 				}))
 			)
 			.flatMap(result => (result == "successful") ? Bacon.once(true) : new Bacon.Error("Sell failed"))
+	},
+	doBuy: function(buyMsg$) {
+		return toApiPost(
+			buyMsg$.map(({portfolioName, symbol, amount}) => ({
+				url: `/portfolio/${portfolioName}/buy`,
+				data: {symbol, amount}
+			}))
+		)
 	}
 }

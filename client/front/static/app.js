@@ -1,5 +1,5 @@
 
-const {createAction, getPortfolio, doSellAll} = require('./data.js')
+const {createAction, getPortfolio, doSellAll, doBuy} = require('./data.js')
 
 const Icon = React.createClass({
 	render: function() {
@@ -25,18 +25,25 @@ const model = function() {
 		currentPortfolio: selectPortfolio.$
 	}).toEventStream().log('portfolio selector')
 
+	const buy = createAction()
+	const bought$ = doBuy(Bacon.when(
+		[buy.$, selectPortfolio.$.toProperty()], ({symbol, amount}, portfolioName) => ({symbol, amount, portfolioName})
+	))
+
 	const sellAll = createAction()
 	const sold$ = doSellAll(Bacon.when(
 		[sellAll.$, selectPortfolio.$.toProperty()], (symbol, portfolioName) => ({symbol, portfolioName})
 	))
-	const loadPortfolio$ = selectPortfolio.$.merge(selectPortfolio.$.sampledBy(sold$))
+	const loadPortfolio$ = selectPortfolio.$
+		.merge(selectPortfolio.$.sampledBy(sold$))
+		.merge(selectPortfolio.$.sampledBy(bought$))
 	const portfolio$ = Bacon.combineTemplate({
 		portfolio: getPortfolio(loadPortfolio$).log('portfolio'),
 		sellAll: sellAll.action
 	}).toEventStream()
 
 	const state$ = Bacon.update(
-		null,
+		{buyer: {buy: buy.action}},
 		[portfolioSelector$], addAndIncludePrevious('portfolioSelector'),
 		[portfolio$], addAndIncludePrevious('portfolio')
 	).log('state')
@@ -51,7 +58,10 @@ $('document').ready(() => {
 		.filter(state => state != null)
 		.map(state =>
 			<div>
-				{(state.portfolio) ? Portfolio(state.portfolio) : null}
+				{(state.portfolio) ?
+					(<div className="portfolio-container">{Portfolio(state.portfolio)}{Buyer(state.buyer)}</div>) :
+					null
+				}
 				{PortfolioSelector(state.portfolioSelector)}
 			</div>
 		)
@@ -150,6 +160,35 @@ function Portfolio({portfolio: model, sellAll}) {
 					</tr>
 				</tfoot>
 			</table>
+		</div>
+	</div>)
+}
+
+function Buyer({buy}) {
+	function sendBuy(event) {
+		event.preventDefault()
+		buy({
+			symbol: $('.buyer input.symbol').val(),
+			amount: $('.buyer input.amount').val()
+		})
+	}
+
+	return (<div className="buyer ui segment">
+		<div className="content">
+			<p className="header">Buyer</p>
+			<div className="description">
+				<form className="ui form">
+					<div className="field">
+						<label>Symbol</label>
+						<input type="text" className="symbol"></input>
+					</div>
+					<div className="field">
+						<label>Amount</label>
+						<input type="text" className="amount"></input>
+					</div>
+					<button className="ui button green" onClick={sendBuy}>Buy</button>
+				</form>
+			</div>
 		</div>
 	</div>)
 }

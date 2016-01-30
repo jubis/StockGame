@@ -51,15 +51,14 @@ class PortfolioService {
     doBuy(portfolioName, "MSFT", 1)
   }
 
-  def getPortfolio(portfolioName: String): Future[PortfolioSnapshot] = {
+  def getPortfolio(portfolioName: String): Future[PortfolioAnalysis] = {
     logger.info(s"Getting portfolio $portfolioName")
 
     (getPortfolioActor(portfolioName) ? ValueRequest())
-      .map { case snapshot: PortfolioSnapshot => snapshot }
-      .recover { case _ => PortfolioSnapshot(
-                              "Test portfolio", 0,
-                              List(AssetSnapshot(Asset("A", 1.1, 10, 0L), 1.0)),
-                              PortfolioAnalysis(11, 1, 10, List(AssetAnalysis(AssetSnapshot(Asset("A", 1.1, 10, 0L), 1.0), 11, 1, 10)))
+      .map { case snapshot: PortfolioAnalysis => snapshot }
+      .recover { case _ => PortfolioAnalysis(
+                              "Test portfolio", 0, 100, 11, 1, 10,
+                              List(AssetAnalysis(AssetSnapshot("A", 1.1, 10, 0L), 10, 1, 10))
                           )
       }
   }

@@ -1,11 +1,17 @@
 body {
-  background-color: beige; }
+  background-image: url("wallstreet.jpg");
+  background-attachment: fixed;
+  background-size: cover; }
 
 .portfolio-selector.ui.card {
   position: absolute;
   top: 0;
   right: 0;
   margin: 10px 10px 0 0; }
+
+.portfolio-container {
+  display: flex;
+  align-items: flex-start; }
 
 .portfolio.ui.segments, .portfolio.ui.segment {
   width: 600px;
@@ -17,5 +23,8 @@ body {
     color: darkred; }
   .portfolio.ui.segments .profit-blue span, .portfolio.ui.segment .profit-blue span {
     color: blue; }
+
+.buyer.ui.segment {
+  margin: 10px 0 0 10px; }
 
 /*# sourceMappingURL=app.css.map */
