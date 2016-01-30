@@ -7,6 +7,7 @@ import shapeless._
 import TwitterFutureConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 
+
 class PortfolioRest(implicit val service: PortfolioService) extends Rest {
   val portfolioReader: RequestReader[String] = param("name")
 

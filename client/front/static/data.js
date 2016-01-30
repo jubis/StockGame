@@ -1,14 +1,19 @@
 'use strict'
 
+function fullUrl(path) {
+	return 'http://' + window.location.hostname + ':8080' + path
+}
+
 function toApiCall($url) {
 	return $url
 		.map(path => {
-			return {type: 'GET', url: 'http://' + window.location.hostname + ':8080' + path}
+			return {type: 'GET', url: fullUrl(path)}
 		})
 		.ajax()
 }
-function toApiPost(url$) {
-	//return url$
+function toApiPost(post$) {
+	return post$
+		.flatMap(({url, data}) => Bacon.$.ajaxPost(fullUrl(url), data))
 }
 
 module.exports = {
@@ -33,14 +38,15 @@ module.exports = {
 		return toApiCall(
 				portfolioSearch$.map(name => `/portfolio/${name}`)
 			)
-			.map(portfolio => {
-				const marketValue = portfolio.totalValue - portfolio.cash
-				portfolio.assets = portfolio.assets.map(({asset, symbolValue}) => {
-					const totalValue = symbolValue * asset.count
-					const symbolProfit = (symbolValue - asset.buyPrice) * asset.count
-					return {asset, symbolValue, totalValue, symbolProfit}
+			.map(({name, cash, analysis}) => {
+				const {profit, profitPercentage, totalValue: marketValue} = analysis
+
+				const stocks = analysis.assets.map(({asset, marketValue, profit, profitPercentage}) => {
+					const symbolValue = asset.symbolValue
+					const {symbol, count, buyPrice} = asset.asset
+					return {symbol, count, symbolValue, buyPrice, marketValue, profit, profitPercentage}
 				})
-				return {marketValue, ...portfolio}
+				return {name, cash, marketValue, profit, profitPercentage, stocks}
 			}).log('portfolio')
 			.merge(
 				portfolioSearch$.map(() => ({loading: true}))
@@ -48,9 +54,12 @@ module.exports = {
 
 	},
 	doSellAll: function(sellAllMsg$) {
-		toApiPost(
-			sellAllMsg$.map(({portfolioName, symbol}) => `/portfolio/${portfolioName}/sell`)
-		)
-		return Bacon.never()
+		return toApiPost(
+				sellAllMsg$.map(({portfolioName, symbol}) => ({
+						url: `/portfolio/${portfolioName}/sell`,
+						data: {symbol}
+				}))
+			)
+			.flatMap(result => (result == "successful") ? Bacon.once(true) : new Bacon.Error("Sell failed"))
 	}
 }

@@ -1,3 +1,7 @@
+body {
+  background-color: beige;
+}
+
 .portfolio-selector.ui.card {
   position: absolute;
   top: 0;
@@ -12,5 +16,12 @@
   .sell-all.ui.button {
     width: 60px;
     padding: 8px 0;
+  }
+
+  .profit-red span {
+    color: darkred
+  }
+  .profit-blue span {
+    color: blue;
   }
 }
