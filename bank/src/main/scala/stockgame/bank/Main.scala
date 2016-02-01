@@ -16,7 +16,7 @@ object Main extends App {
   implicit val system = ActorSystem("BankSystem")
 
 
-  val market = resolve(system.actorSelection("akka.tcp://MarketSystem@192.168.0.15:8888/user/market"))
+  val market = resolve(system.actorSelection("akka.tcp://MarketSystem@market:8888/user/market"))
 
   val analyser = system.actorOf(Props.create(classOf[PortfolioAnalyzer], market), name = "analyzer")
 

@@ -10,4 +10,4 @@ COPY front /stockgame/front
 COPY target/scala-2.11/client.jar /stockgame/client.jar
 
 CMD cd /stockgame/front && npm run serve \
-    && cd /stockgame && java -jar client.jar
+    && cd /stockgame && java -jar -Dakka.remote.netty.tcp.hostname=$AKKA_HOSTNAME client.jar

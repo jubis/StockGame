@@ -1,0 +1,27 @@
+client:
+  image: jubis/sg-client
+  ports:
+    - "8080-8081:8080-8081"
+  expose:
+    - 5556
+  environment:
+    - AKKA_HOSTNAME=client
+  hostname: client
+  links:
+    - bank
+market:
+  image: jubis/sg-market
+  expose:
+    - 8888
+  hostname: market
+  environment:
+    - AKKA_HOSTNAME=market
+bank:
+  image: jubis/sg-bank
+  expose:
+    - 5555
+  links:
+    - market
+  hostname: bank
+  environment:
+    - AKKA_HOSTNAME=bank
