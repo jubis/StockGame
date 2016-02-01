@@ -4,6 +4,9 @@ version := "1.0"
 
 scalaVersion := "2.11.7"
 
+mainClass in assembly := Some("me.matiass.actors.Main")
+assemblyJarName in assembly := "client.jar"
+
 resolvers += "twttr" at "https://maven.twttr.com/"
 
 libraryDependencies ++= Seq(
