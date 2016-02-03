@@ -14,7 +14,7 @@ object MarketApp extends App {
 
 class MarketActor extends Actor {
   def timeMs: Long = System.currentTimeMillis
-  val TIMEOUT: Long = 2000
+  val TIMEOUT: Long = 4500
 
   def handleTime[T](f: Future[T], symbol: String): Future[T] = {
     val startTime = timeMs
