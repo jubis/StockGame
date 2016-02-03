@@ -43,10 +43,8 @@ module.exports = {
 					return {...asset, marketValue, profit, profitPercentage}
 				})
 				return {name, cash, marketValue, totalValue, profit, profitPercentage, stocks}
-			}).log('portfolio')
-			.merge(
-				portfolioSearch$.map(() => ({loading: true}))
-			)
+			})
+			.log('portfolio')
 
 	},
 	doSellAll: function(sellAllMsg$) {

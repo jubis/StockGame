@@ -40,7 +40,7 @@ class PortfolioService {
     action
       .andThen {
         case Success(_) => auditor ! BuyEvent(subjectName)
-        case Failure(_) => auditor ! new RuntimeException(s"$actionType failed in portfolio $subjectName")
+        case Failure(ex) => auditor ! new RuntimeException(s"$actionType failed in portfolio $subjectName - because: $ex")
       }
       .map(_ => true)
       .recover { case _ => false }

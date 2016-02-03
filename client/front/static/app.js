@@ -35,10 +35,12 @@ const model = function() {
 		[sellAll.$, selectPortfolio.$.toProperty()], (symbol, portfolioName) => ({symbol, portfolioName})
 	))
 	const loadPortfolio$ = selectPortfolio.$
-		.merge(selectPortfolio.$.sampledBy(sold$))
-		.merge(selectPortfolio.$.sampledBy(bought$))
+	loadPortfolio$.plug(selectPortfolio.$.sampledBy(sold$))
+	loadPortfolio$.plug(selectPortfolio.$.sampledBy(bought$))
+	const loadedPortfolio$ = getPortfolio(loadPortfolio$).log('portfolio')
+	loadPortfolio$.plug(selectPortfolio.$.sampledBy(loadedPortfolio$.delay(5000)).log('reload'))
 	const portfolio$ = Bacon.combineTemplate({
-		portfolio: getPortfolio(loadPortfolio$).log('portfolio'),
+		portfolio: loadedPortfolio$,
 		sellAll: sellAll.action
 	}).toEventStream()
 
@@ -117,7 +119,7 @@ function Portfolio({portfolio: model, sellAll}) {
 						<th></th>
 						<th>Count</th>
 						<th>Buy Price</th>
-						<th>Value</th>
+						<th>Bid</th>
 						<th>Total Value</th>
 						<th>Profit</th>
 						<th></th>
